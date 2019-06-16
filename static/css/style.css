@@ -1,0 +1,12 @@
+html, body, .container {
+    padding-bottom: 10px;
+    height: 100%;
+}
+
+#map {
+    height: 75%;
+}
+
+#the-file {
+    display: none;
+}

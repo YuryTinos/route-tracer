@@ -9,22 +9,7 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin="" />
-
-    <style>
-
-      html, body, .container { 
-        padding-bottom: 10px;
-        height: 100%;
-      }
-
-      #map {
-        height: 75%;
-      }
-
-      #the-file {
-        display: none;
-      }
-    </style>
+    <link rel="stylesheet" href="/static/css/style.css" />
   </head>
 
   <body>
@@ -59,7 +44,7 @@
 
         <button type="submit" class="col-sm-1 btn btn-primary">Trace</button>
       </form>
-      <small id="coord-help" class="form-text text-muted">*The data obtained from the File ou URL must contain at leas two collumns, latitude and longitude separated by comma ','</small>
+      <small id="coord-help" class="form-text text-muted">*The data obtained from the File ou URL must contain at leas two collumns, latitude and longitude separated by comma ',' and will execute in the time defined in the field 'Execution time'</small>
 
       <div id="map"></div>
     </div>
@@ -75,131 +60,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
     <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
-    <script>
-
-      $("form").submit(function (e) {
-
-        e.preventDefault();
-
-        var url = $("#coord-info").val();
-        var files = $("#the-file").prop('files');
-
-        if (url != "" && url.indexOf("http") !== -1) {
-          
-          $.ajax({
-            url: $("#coord-info").val(),
-            type: "GET",
-            xhrFields: { withCredentials: true },
-            success: function (data) {
-              console.log(data);
-              onSuccess(data);
-            },
-            error: function (e) {
-              console.log(e);
-            }
-          });
-
-        }
-        else if (files.length > 0) {
-
-          var formData = new FormData();
-          formData.append("the_file", files[0]);
-
-          $.ajax({
-            url: "/upload",
-            type: "POST",
-            enctype: 'multipart/form-data',
-            data: formData,
-            cache: false,
-            contentType: false,
-            processData: false,
-            success: function (data) {
-              onSuccess(JSON.parse(data).map(function (x) {
-                return [x.latitude, x.longitude];
-              }));
-            },
-            error: function (e) {
-              console.log(e);
-            }
-          });
-        }
-        else {
-          alert("Choose a file or paste a URL on the field Coordinates!");
-        }
-      });
-
-      function onSuccess(coordinates) {
-
-        var time = getTimeInSeconds($("#span-time").val()) * 1000 / coordinates.length;
-
-        if (time <= 20) {
-          alert("Tempo minimo excedido");
-          return;
-        }
-
-        createElementCoordinates(0, coordinates, time);
-      }
-
-      var map;
-
-      function createElementCoordinates(i, coordinates, time) {
-
-        coordinate = coordinates[i];
-
-        if (i >= coordinates.length) {
-          return;
-        }
-
-        if (i == 0) {
-          map = L.map('map').setView([coordinate[0], coordinate[1]], 10);
-          map.invalidateSize();
-
-          L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-            maxZoom: 18,
-            id: 'mapbox.streets',
-            accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'
-          }).addTo(map);
-
-          L.marker([coordinate[0], coordinate[1]]).addTo(map);
-        }
-
-        if (i > 0) {
-          previous_coordinate = coordinates[i - 1];
-          var pointA = new L.LatLng(previous_coordinate[0], previous_coordinate[1]);
-          var pointB = new L.LatLng(coordinate[0], coordinate[1]);
-          var pointList = [pointA, pointB];
-          var polyline = L.polyline(pointList, { color: 'blue', weight: 3, opacity: 0.8, smoothFactor: 1 });
-          polyline.addTo(map);
-        }
-        map.setView([coordinate[0], coordinate[1]], 15);
-
-        if (i == (coordinates.length - 1)) {
-          L.marker([coordinate[0], coordinate[1]]).addTo(map);
-          middle_coordinate = coordinates[Math.round(length / 2)];
-          map.fitBounds(coordinates);
-        }
-
-        setTimeout(function () {
-          createElementCoordinates(++i, coordinates, time);
-        }, time);
-      }
-
-      function getTimeInSeconds(strTime) {
-
-        try {
-          arrTime = strTime.split(':');
-          var hour = new Number(arrTime[0]);
-          var minute = new Number(arrTime[1]);
-          var second = new Number(arrTime[2]);
-
-          return ((hour * 3600) + (minute * 60) + second);
-        }
-        catch (e) {
-          console.log(e);
-          return 0;
-        }
-      }
-    </script>
+    <script src="/static/js/map.js"></script>
   </body>
 </html>
