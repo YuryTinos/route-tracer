@@ -59,5 +59,6 @@ def upload_file():
     return coordinates.to_json(orient = 'records', index = True), 200
 
 if __name__ == '__main__':
-    app.debug = False
-    app.run()
+    app.debug = bool(os.environ.get("FLASK_ENV", False))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host='0.0.0.0', port=port)
