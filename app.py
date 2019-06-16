@@ -13,7 +13,7 @@ ALLOWED_CONTENTS = [{'content_type': 'text/plain', 'extension': 'txt'},
                     {'content_type': 'application/vnd.ms-excel', 'extension': 'xls'}, 
                     {'content_type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'extension': 'xlsx'}]
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path = '/static')
 
 def allowed_file(file):
     return any(a['content_type'] == file.content_type for a in ALLOWED_CONTENTS)
@@ -59,6 +59,6 @@ def upload_file():
     return coordinates.to_json(orient = 'records', index = True), 200
 
 if __name__ == '__main__':
-    app.debug = bool(os.environ.get("FLASK_ENV", False))
+    app.debug = os.environ.get("FLASK_ENV", "development")
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
