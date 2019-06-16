@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css" />
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin="" />
+
+    <style>
+
+      html, body, .container { 
+        padding-bottom: 10px;
+        height: 100%;
+      }
+
+      #map {
+        height: 75%;
+      }
+
+      #the-file {
+        display: none;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+
+      <h1>
+        Route Tracer
+        <small class="text-muted">to animate walked route</small>
+      </h1>
+
+      <form class="form-inline mb-3">  
+
+        <div class="form-group col-sm-7">
+          <label class="col-sm-2 col-form-label" for="coord-info">Coordinates</label>
+          <div class="col-sm-10">
+            <div class="input-group">
+              <input type="text" id="coord-info" class="form-control" placeholder="URL com coordenadas" aria-label="URL" aria-describedby="coord-help" onclick="$(this).val('');$('#the-file').val(null);">
+              <div class="input-group-append">
+                <label class="btn btn-outline-secondary" id="basic-addon2" for="the-file">or Browse</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group col-sm-4">
+          <label class="col-sm-5 col-form-label" for="span-time">Execution time</label>
+          <div class="col-sm-7">
+            <input type="time" id="span-time" class="form-control" required pattern="[0-9]{2}:[0-9]{2}" step="10"
+              min="00:00:10" max="00:10:00" value="00:00:10" aria-describedby="time-help">
+          </div>
+        </div>
+
+        <button type="submit" class="col-sm-1 btn btn-primary">Trace</button>
+      </form>
+      <small id="coord-help" class="form-text text-muted">*The data obtained from the File ou URL must contain at leas two collumns, latitude and longitude separated by comma ','</small>
+
+      <div id="map"></div>
+    </div>
+
+    <input type="file" 
+           id="the-file" 
+           name="the-file" 
+           size="40" 
+           onchange="$('#coord-info').val($(this).val());"
+           accept="text/plain, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel">
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
+    <script>
+
+      $("form").submit(function (e) {
+
+        e.preventDefault();
+
+        var url = $("#coord-info").val();
+        var files = $("#the-file").prop('files');
+
+        if (url != "" && url.indexOf("http") !== -1) {
+          
+          $.ajax({
+            url: $("#coord-info").val(),
+            type: "GET",
+            xhrFields: { withCredentials: true },
+            success: function (data) {
+              console.log(data);
+              onSuccess(data);
+            },
+            error: function (e) {
+              console.log(e);
+            }
+          });
+
+        }
+        else if (files.length > 0) {
+
+          var formData = new FormData();
+          formData.append("the_file", files[0]);
+
+          $.ajax({
+            url: "http://localhost:5000/upload",
+            type: "POST",
+            enctype: 'multipart/form-data',
+            data: formData,
+            cache: false,
+            contentType: false,
+            processData: false,
+            success: function (data) {
+              onSuccess(JSON.parse(data).map(function (x) {
+                return [x.latitude, x.longitude];
+              }));
+            },
+            error: function (e) {
+              console.log(e);
+            }
+          });
+        }
+        else {
+          alert("Choose a file or paste a URL on the field Coordinates!");
+        }
+      });
+
+      function onSuccess(coordinates) {
+
+        var time = getTimeInSeconds($("#span-time").val()) * 1000 / coordinates.length;
+
+        if (time <= 20) {
+          alert("Tempo minimo excedido");
+          return;
+        }
+
+        createElementCoordinates(0, coordinates, time);
+      }
+
+      var map;
+
+      function createElementCoordinates(i, coordinates, time) {
+
+        coordinate = coordinates[i];
+
+        if (i >= coordinates.length) {
+          return;
+        }
+
+        if (i == 0) {
+          map = L.map('map').setView([coordinate[0], coordinate[1]], 10);
+          map.invalidateSize();
+
+          L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+            maxZoom: 18,
+            id: 'mapbox.streets',
+            accessToken: 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw'
+          }).addTo(map);
+
+          L.marker([coordinate[0], coordinate[1]]).addTo(map);
+        }
+
+        if (i > 0) {
+          previous_coordinate = coordinates[i - 1];
+          var pointA = new L.LatLng(previous_coordinate[0], previous_coordinate[1]);
+          var pointB = new L.LatLng(coordinate[0], coordinate[1]);
+          var pointList = [pointA, pointB];
+          var polyline = L.polyline(pointList, { color: 'blue', weight: 3, opacity: 0.8, smoothFactor: 1 });
+          polyline.addTo(map);
+        }
+        map.setView([coordinate[0], coordinate[1]], 15);
+
+        if (i == (coordinates.length - 1)) {
+          L.marker([coordinate[0], coordinate[1]]).addTo(map);
+          middle_coordinate = coordinates[Math.round(length / 2)];
+          map.fitBounds(coordinates);
+        }
+
+        setTimeout(function () {
+          createElementCoordinates(++i, coordinates, time);
+        }, time);
+      }
+
+      function getTimeInSeconds(strTime) {
+
+        try {
+          arrTime = strTime.split(':');
+          var hour = new Number(arrTime[0]);
+          var minute = new Number(arrTime[1]);
+          var second = new Number(arrTime[2]);
+
+          return ((hour * 3600) + (minute * 60) + second);
+        }
+        catch (e) {
+          console.log(e);
+          return 0;
+        }
+      }
+    </script>
+  </body>
+</html>
