@@ -106,7 +106,7 @@
           formData.append("the_file", files[0]);
 
           $.ajax({
-            url: "http://localhost:5000/upload",
+            url: "/upload",
             type: "POST",
             enctype: 'multipart/form-data',
             data: formData,
