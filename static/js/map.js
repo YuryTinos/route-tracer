@@ -6,6 +6,11 @@ $(document).ready(function () {
 
         e.preventDefault();
 
+        if(map != undefined || map != null) {
+            map.off();
+            map.remove();
+        }
+
         var url = $("#coord-info").val();
         var files = $("#the-file").prop('files');
 
@@ -16,8 +21,7 @@ $(document).ready(function () {
                 type: "GET",
                 xhrFields: { withCredentials: true },
                 success: function (data) {
-                    console.log(data);
-                    onSuccess(data);
+                    onSuccess(Array.from(data.split('\n'), x => x.replace(' ', '').split(',')));
                 },
                 error: function (e) {
                     console.log(e);
@@ -84,6 +88,10 @@ $(document).ready(function () {
             }).addTo(map);
 
             L.marker([coordinate[0], coordinate[1]]).addTo(map);
+        }
+
+        if(map == undefined || map == null) {
+            return;
         }
 
         if (i > 0) {
