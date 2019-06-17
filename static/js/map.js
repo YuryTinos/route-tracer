@@ -22,6 +22,7 @@ $(document).ready(function () {
                 headers: {
                     "Access-Control-Allow-Origin": "*",
                 },
+                cache: false,
                 success: function (data) {
                     onSuccess(Array.from(data.split('\n'), x => x.replace(' ', '').split(',')));
                 },
