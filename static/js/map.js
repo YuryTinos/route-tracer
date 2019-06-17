@@ -19,7 +19,9 @@ $(document).ready(function () {
             $.ajax({
                 url: $("#coord-info").val(),
                 type: "GET",
-                xhrFields: { withCredentials: true },
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                },
                 success: function (data) {
                     onSuccess(Array.from(data.split('\n'), x => x.replace(' ', '').split(',')));
                 },
@@ -42,6 +44,9 @@ $(document).ready(function () {
                 cache: false,
                 contentType: false,
                 processData: false,
+                headers: {
+                    "Access-Control-Allow-Origin": "*",
+                },
                 success: function (data) {
                     onSuccess(JSON.parse(data).map(function (x) {
                         return [x.latitude, x.longitude];
