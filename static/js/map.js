@@ -24,10 +24,11 @@ $(document).ready(function () {
                 },
                 cache: false,
                 success: function (data) {
-                    onSuccess(Array.from(data.split('\n'), x => x.replace(' ', '').split(',')));
+                    onSuccess(Array.from(data.split("\n"), x => x.replace(" ", "").split(",")).filter(v => v != ""));
                 },
                 error: function (e) {
                     console.log(e);
+                    alert("Erro ao obter dados desta URL! [" + e.responseText + "]");
                 }
             });
 
@@ -51,10 +52,11 @@ $(document).ready(function () {
                 success: function (data) {
                     onSuccess(JSON.parse(data).map(function (x) {
                         return [x.latitude, x.longitude];
-                    }));
+                    }).filter(v => v != ""));
                 },
                 error: function (e) {
                     console.log(e);
+                    alert("Erro ao obter dados deste Arquivo! [" + e.responseText + "]");
                 }
             });
         }
